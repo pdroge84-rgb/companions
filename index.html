@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Companions">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F3F2FA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#11132A" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;-webkit-text-size-adjust:100%}img{max-width:100%}[hidden]{display:none!important}</style><title>Companion Speurlijst</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shantell+Sans:wght@500;700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&display=swap">
+<style>
+/* Layout: one-column phone app — sticky header with clock + character switch, tab bar at the bottom, cards grouped by realm. Ink-blue nods to her pen-and-paper list; gold marks "now". */
+:root{
+  --bg:#F3F2FA; --surface:#FFFFFF; --ink:#1E2340; --muted:#626889; --line:#DCDCEB;
+  --pen:#2E3F9E; --pen-soft:#E3E7FA; --gold:#B7791F; --gold-soft:#FBF0D9;
+  --done:#2F7D57; --done-soft:#DDF1E6; --danger:#B3261E;
+  --f-display:"Shantell Sans","Comic Sans MS",cursive; --f-body:"Nunito Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#11132A; --surface:#1B1E3A; --ink:#ECEBFA; --muted:#A3A7C8; --line:#2E3258;
+  --pen:#9DB0FF; --pen-soft:#262C5C; --gold:#F2C46B; --gold-soft:#3A3020;
+  --done:#7FD3A6; --done-soft:#1D3A2E; --danger:#FF8A80; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11132A; --surface:#1B1E3A; --ink:#ECEBFA; --muted:#A3A7C8; --line:#2E3258;
+  --pen:#9DB0FF; --pen-soft:#262C5C; --gold:#F2C46B; --gold-soft:#3A3020;
+  --done:#7FD3A6; --done-soft:#1D3A2E; --danger:#FF8A80; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;padding-inline:16px;padding-block:0 96px}
+.wrap{max-width:640px;margin:0 auto}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:14px 10px;display:grid;gap:10px}
+.top{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+h1{font-family:var(--f-display);font-weight:700;font-size:1.45rem;margin:0;color:var(--pen);text-wrap:balance}
+.clock{font-size:.82rem;color:var(--muted);font-variant-numeric:tabular-nums;text-align:right}
+.clock b{color:var(--ink)}
+.who{display:flex;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px}
+.who button{flex:1;min-width:0;border:0;background:none;color:var(--muted);font:600 .9rem var(--f-body);padding:8px 6px;border-radius:999px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who button[aria-pressed="true"]{background:var(--pen);color:var(--surface)}
+main{display:grid;gap:22px;padding-top:8px}
+.summary{font-family:var(--f-display);font-size:1.05rem;margin:0}
+.summary span{color:var(--pen)}
+section{display:grid;gap:10px}
+h2{font-family:var(--f-display);font-weight:700;font-size:1.1rem;margin:0;display:flex;align-items:center;gap:8px}
+h2 .count{font:600 .75rem var(--f-body);color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:1px 8px}
+h2.now{color:var(--gold)}
+h3.realm{font:700 .72rem var(--f-body);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:6px 0 0}
+.species{font-family:var(--f-display);font-size:.95rem;color:var(--pen);margin:4px 0 -2px}
+.species small{font-family:var(--f-body);color:var(--muted);font-size:.78rem}
+.list{display:grid;gap:8px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 12px 12px 14px;display:flex;gap:10px;align-items:flex-start}
+.card.live{border-color:var(--gold);box-shadow:inset 3px 0 0 var(--gold)}
+.card.all-done{opacity:.6}
+.card-main{flex:1;min-width:0;background:none;border:0;padding:0;text-align:left;color:inherit;font:inherit;cursor:pointer}
+.card-main strong{display:block;font-size:1rem}
+.meta{color:var(--muted);font-size:.85rem}
+.when{font-size:.85rem;margin-top:4px;font-variant-numeric:tabular-nums}
+.tag{display:inline-block;font-size:.72rem;font-weight:700;border-radius:6px;padding:1px 6px;margin-right:4px;vertical-align:1px}
+.tag.gold{background:var(--gold-soft);color:var(--gold)}
+.tag.pen{background:var(--pen-soft);color:var(--pen)}
+.pills{display:grid;gap:6px;flex-shrink:0}
+.pill{border:1px solid var(--line);background:var(--bg);color:var(--muted);font:600 .75rem var(--f-body);border-radius:999px;padding:5px 10px;cursor:pointer;max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill.need{border-color:var(--pen);color:var(--pen);background:var(--pen-soft)}
+.pill.done{border-color:var(--done);color:var(--done);background:var(--done-soft)}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:14px;padding:18px;color:var(--muted);text-align:center}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 11px;width:100%;min-width:0}
+.toolbar input{flex:1 1 180px}
+.seg{display:flex;gap:4px}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--muted);font:600 .82rem var(--f-body);border-radius:999px;padding:7px 12px;cursor:pointer}
+.chip[aria-pressed="true"]{border-color:var(--pen);background:var(--pen-soft);color:var(--pen)}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);display:flex;justify-content:center;padding:6px 16px calc(6px + env(safe-area-inset-bottom,0px))}
+nav.tabs .in{display:flex;gap:6px;width:100%;max-width:640px}
+nav.tabs button{flex:1;border:0;background:none;color:var(--muted);font:700 .82rem var(--f-body);padding:10px 4px;border-radius:10px;cursor:pointer}
+nav.tabs button[aria-current="page"]{color:var(--pen);background:var(--pen-soft)}
+nav.tabs button.add{background:var(--pen);color:var(--surface)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.sheet-bg{position:fixed;inset:0;background:rgba(10,12,30,.45);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--bg);width:100%;max-width:640px;max-height:92%;overflow:auto;border-radius:18px 18px 0 0;padding:18px 16px calc(20px + env(safe-area-inset-bottom,0px));display:grid;gap:14px}
+.sheet h2{font-size:1.25rem}
+label.f{display:grid;gap:4px;font-size:.8rem;font-weight:700;color:var(--muted)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rule{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px;display:grid;gap:8px}
+.days{display:flex;flex-wrap:wrap;gap:4px}
+.days .chip{padding:6px 9px;min-width:38px}
+.hours{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.hours select{width:auto}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);font:700 .9rem var(--f-body);border-radius:10px;padding:10px 14px;cursor:pointer}
+.btn.primary{background:var(--pen);border-color:var(--pen);color:var(--surface)}
+.btn.danger{color:var(--danger)}
+.btn.small{padding:6px 10px;font-size:.8rem}
+.actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between}
+.toast{position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:10px;font-size:.85rem;z-index:30;max-width:calc(100% - 32px)}
+.note{font-size:.8rem;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.card{transition:opacity .2s}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="top">
+      <h1>Companion Speurlijst</h1>
+      <div class="clock" id="clock"></div>
+    </div>
+    <div class="who" id="who" role="group" aria-label="Karakter"></div>
+  </header>
+  <main id="main"><div class="empty">Lijst laden…</div></main>
+</div>
+<nav class="tabs"><div class="in">
+  <button id="tab-now" aria-current="page">Nu</button>
+  <button id="tab-all">Hele lijst</button>
+  <button id="tab-set">Namen</button>
+  <button id="tab-add" class="add">+ Toevoegen</button>
+</div></nav>
+<div id="sheet-root"></div>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+const DAYS=['zo','ma','di','wo','do','vr','za'], ORDER=[1,2,3,4,5,6,0];
+const CHARS=['a','b'];
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const state={items:[],names:{a:'Karakter 1',b:'Karakter 2'},loaded:false,slow:false,tab:'now',
+  who:store.get('who','both'),filter:store.get('filter','need'),q:''};
+let db=null;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const hh=h=>String(h).padStart(2,'0')+':00';
+
+function fmtDays(ds){
+  const s=new Set(ds); if(s.size===7) return 'elke dag'; if(!s.size) return 'geen dagen';
+  const on=ORDER.map(d=>s.has(d)), parts=[]; let i=0;
+  while(i<7){ if(!on[i]){i++;continue} let j=i; while(j+1<7&&on[j+1]) j++;
+    if(j-i>=2) parts.push(DAYS[ORDER[i]]+' t/m '+DAYS[ORDER[j]]); else for(let k=i;k<=j;k++) parts.push(DAYS[ORDER[k]]);
+    i=j+1 }
+  return parts.join(', ');
+}
+const fmtTime=r=>(r.from===0&&r.to===24)?'hele dag':hh(r.from)+'–'+hh(r.to);
+const fmtRules=c=>(c.rules||[]).map(r=>fmtDays(r.days)+' '+fmtTime(r)).join(' · ')||'geen tijden';
+const weatherTag=c=>c.weather==='regen'?'<span class="tag pen">bij regen</span>':c.weather==='zon'?'<span class="tag gold">bij zon</span>':'';
+
+function nowInfo(){const d=new Date();return{day:d.getDay(),h:d.getHours()+d.getMinutes()/60,date:d}}
+function liveRule(c,n){return (c.rules||[]).find(r=>r.days.includes(n.day)&&r.from<=n.h&&n.h<r.to)}
+function laterRule(c,n){return (c.rules||[]).filter(r=>r.days.includes(n.day)&&r.from>n.h).sort((a,b)=>a.from-b.from)[0]}
+function wanted(c){const s=c.status||{};return state.who==='both'?CHARS.some(k=>s[k]==='need'):s[state.who]==='need'}
+function sortKey(c){return (c.order??999)}
+
+function renderHeader(){
+  const n=nowInfo(), d=n.date;
+  $('#clock').innerHTML=`${DAYS[n.day]} ${d.getDate()} ${d.toLocaleDateString('nl-NL',{month:'short'})}<br><b>${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}</b>`;
+  const opts=[['a',state.names.a],['b',state.names.b],['both','Allebei']];
+  $('#who').innerHTML=opts.map(([k,l])=>`<button data-who="${k}" aria-pressed="${state.who===k}">${esc(l)}</button>`).join('');
+}
+
+function card(c,extra){
+  const n=nowInfo(), live=liveRule(c,n), s=c.status||{};
+  const pills=CHARS.map(k=>{const st=s[k]||'none';const lab=st==='need'?'nodig':st==='done'?'✓ binnen':'n.v.t.';
+    return `<button class="pill ${st}" data-cycle="${k}" data-id="${c.id}" aria-label="${esc(state.names[k])}: ${lab}">${esc(state.names[k])} · ${lab}</button>`}).join('');
+  const allDone=CHARS.every(k=>s[k]!=='need');
+  return `<article class="card${live&&extra!=='plain'?' live':''}${allDone?' all-done':''}">
+    <button class="card-main" data-edit="${c.id}">
+      <strong>${esc(c.variant||c.species)}</strong>
+      <div class="meta">${esc(c.species)}${c.spot?' · '+esc(c.spot):''}${c.food?' · eet '+esc(c.food):''}</div>
+      <div class="when">${extra&&extra!=='plain'?extra:''}${weatherTag(c)}${esc(fmtRules(c))}</div>
+    </button>
+    <div class="pills">${pills}</div></article>`;
+}
+
+function grouped(items,extraFn){
+  const realms=new Map();
+  items.forEach(c=>{const r=c.realm||'Overig';if(!realms.has(r))realms.set(r,new Map());const sp=realms.get(r);const k=c.species||'Overig';if(!sp.has(k))sp.set(k,[]);sp.get(k).push(c)});
+  let h='';
+  realms.forEach((sp,r)=>{h+=`<h3 class="realm">${esc(r)}</h3>`;
+    sp.forEach((list,s)=>{const food=list.find(x=>x.food)?.food;
+      h+=`<div class="species">${esc(s)}${food?` <small>· eet ${esc(food)}</small>`:''}</div><div class="list">${list.map(c=>card(c,extraFn?extraFn(c):'')).join('')}</div>`})});
+  return h;
+}
+
+function renderNow(){
+  const n=nowInfo(), need=state.items.filter(wanted).sort((a,b)=>sortKey(a)-sortKey(b));
+  const who=state.who==='both'?'Samen':state.names[state.who];
+  const live=need.filter(c=>!c.weather&&liveRule(c,n));
+  const weather=need.filter(c=>c.weather&&liveRule(c,n));
+  const later=need.filter(c=>!c.weather&&!liveRule(c,n)&&laterRule(c,n)).sort((a,b)=>laterRule(a,n).from-laterRule(b,n).from);
+  let h=`<p class="summary">${esc(who)} ${state.who==='both'?'missen':'mist'} nog <span>${need.length}</span> companion${need.length===1?'':'s'}.</p>`;
+  h+=`<section><h2 class="now">Nu te vinden <span class="count">${live.length}</span></h2>`;
+  h+=live.length?grouped(live,c=>{const r=liveRule(c,n);return r.to===24&&r.from===0?'<span class="tag gold">nu</span>':`<span class="tag gold">nog tot ${hh(r.to)}</span>`})
+    :`<div class="empty">Op dit moment spawnt er niets dat ${state.who==='both'?'jullie':'je'} nog nodig ${state.who==='both'?'hebben':'hebt'}. Kijk bij "Later vandaag".</div>`;
+  h+='</section>';
+  if(weather.length) h+=`<section><h2>Als het weer meezit <span class="count">${weather.length}</span></h2>${grouped(weather,()=>'')}</section>`;
+  h+=`<section><h2>Later vandaag <span class="count">${later.length}</span></h2>`;
+  h+=later.length?grouped(later,c=>`<span class="tag pen">vanaf ${hh(laterRule(c,n).from)}</span>`):'<div class="empty">Vandaag komt er verder niets meer bij.</div>';
+  h+='</section>';
+  return h;
+}
+
+function renderAll(){
+  const q=state.q.trim().toLowerCase();
+  let items=state.items.slice().sort((a,b)=>sortKey(a)-sortKey(b));
+  if(state.filter==='need') items=items.filter(wanted);
+  if(q) items=items.filter(c=>[c.realm,c.species,c.variant,c.spot,c.food].join(' ').toLowerCase().includes(q));
+  let h=`<div class="toolbar"><input id="q" type="search" placeholder="Zoek soort, kleur of plek" value="${esc(state.q)}" aria-label="Zoeken">
+    <div class="seg"><button class="chip" data-filter="need" aria-pressed="${state.filter==='need'}">Nog nodig</button><button class="chip" data-filter="all" aria-pressed="${state.filter==='all'}">Alles</button></div></div>`;
+  h+=items.length?`<section>${grouped(items,()=>'plain')}</section>`:`<div class="empty">${q?'Niets gevonden voor deze zoekterm.':'Alles binnen! Of tik op "+ Toevoegen" voor een nieuwe companion.'}</div>`;
+  return h;
+}
+
+function render(){
+  renderHeader();
+  ['now','all','set'].forEach(t=>{const b=$('#tab-'+t);if(state.tab===t)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
+  const m=$('#main');
+  if(!db&&state.loaded===false&&!state.slow){m.innerHTML='<div class="empty">Lijst laden…</div>';return}
+  if(!state.loaded){m.innerHTML=`<div class="empty">${state.slow?'De lijst is nog niet bereikbaar. Controleer de verbinding; hij laadt vanzelf zodra het lukt.':'Lijst laden…'}</div>`;return}
+  if(state.tab==='set'){m.innerHTML=renderSettings();return}
+  if(!state.items.length){m.innerHTML='<div class="empty">Nog geen companions. Tik op "+ Toevoegen" om de eerste van je papiertje over te nemen.</div>';return}
+  const focusQ=document.activeElement?.id==='q', pos=focusQ?document.activeElement.selectionStart:0;
+  m.innerHTML=state.tab==='now'?renderNow():renderAll();
+  if(focusQ){const i=$('#q');i.focus();i.setSelectionRange(pos,pos)}
+}
+
+function renderSettings(){
+  return `<section><h2>Namen van de karakters</h2>
+    <label class="f">Karakter 1<input id="name-a" value="${esc(state.names.a)}" maxlength="20"></label>
+    <label class="f">Karakter 2<input id="name-b" value="${esc(state.names.b)}" maxlength="20"></label>
+    <div><button class="btn primary" id="save-names">Namen opslaan</button></div>
+    <p class="note">Tijden volgen de klok van dit apparaat, net als het spel. Tik in een kaart op een naam om te wisselen tussen nodig, binnen en n.v.t.</p></section>
+    <section><h2>Reservekopie</h2>
+    <p class="note">Je lijst staat alleen in de browser van deze telefoon. Maak af en toe een reservekopie en bewaar die in een notitie of mail. Ben je de lijst kwijt? Plak de kopie hieronder en tik op Terugzetten.</p>
+    <textarea id="backup-text" rows="3" placeholder="Plak hier een reservekopie" aria-label="Reservekopie"></textarea>
+    <div class="toolbar"><button class="btn primary" id="backup-copy">Kopie maken</button><button class="btn" id="backup-restore">Terugzetten</button></div></section>`;
+}
+
+/* ---------- saving: everything lives in this phone's browser ---------- */
+const KEY='ddv-companions-v1', SEED_V=2;
+function persist(){
+  try{localStorage.setItem(KEY,JSON.stringify({seed:SEED_V,names:state.names,items:state.items}));return true}
+  catch(e){toast('Opslaan lukte niet. Open de app niet in een privévenster.');return false}
+}
+function toast(t){const el=$('#toast');el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,2600)}
+
+function cycle(id,k){
+  const c=state.items.find(x=>x.id===id); if(!c) return;
+  const cur=(c.status||{})[k]||'none', next=cur==='need'?'done':cur==='done'?'none':'need';
+  c.status={...(c.status||{}),[k]:next}; render(); persist();
+  if(next==='done') toast(`${state.names[k]} heeft ${c.variant||c.species}!`);
+}
+
+/* ---------- edit sheet ---------- */
+let draft=null;
+function openSheet(id){
+  const c=id?state.items.find(x=>x.id===id):null;
+  draft=c?JSON.parse(JSON.stringify(c)):{realm:'',species:'',variant:'',spot:'',food:'',weather:'',rules:[{days:[0,1,2,3,4,5,6],from:0,to:24}],
+    status:{a:state.who==='b'?'none':'need',b:state.who==='a'?'none':'need'}};
+  draft.confirmDelete=false; drawSheet();
+}
+function hourOpts(sel,max){let o='';for(let i=0;i<=24;i++)o+=`<option value="${i}"${i===sel?' selected':''}>${hh(i)}</option>`;return o}
+function drawSheet(){
+  const d=draft, realms=[...new Set(state.items.map(c=>c.realm).filter(Boolean))], species=[...new Set(state.items.map(c=>c.species).filter(Boolean))];
+  const rules=d.rules.map((r,i)=>`<div class="rule"><div class="days">${ORDER.map(k=>`<button class="chip" data-rday="${i}:${k}" aria-pressed="${r.days.includes(k)}">${DAYS[k]}</button>`).join('')}</div>
+    <div class="hours"><select data-rfrom="${i}" aria-label="Van">${hourOpts(r.from)}</select> tot <select data-rto="${i}" aria-label="Tot">${hourOpts(r.to)}</select>
+    <button class="btn small" data-rall="${i}">Hele dag</button>${d.rules.length>1?`<button class="btn small danger" data-rdel="${i}">Weg</button>`:''}</div></div>`).join('');
+  $('#sheet-root').innerHTML=`<div class="sheet-bg" id="sheet-bg"><div class="sheet" role="dialog" aria-modal="true" aria-label="Companion">
+    <h2>${d.id?'Companion aanpassen':'Nieuwe companion'}</h2>
+    <div class="row2"><label class="f">Soort<input id="f-species" list="dl-species" value="${esc(d.species)}" placeholder="Cobra"></label>
+      <label class="f">Kleur / naam<input id="f-variant" value="${esc(d.variant)}" placeholder="Green &amp; white striped"></label></div>
+    <div class="row2"><label class="f">Gebied<input id="f-realm" list="dl-realm" value="${esc(d.realm)}" placeholder="Eternity Isle"></label>
+      <label class="f">Plek<input id="f-spot" value="${esc(d.spot)}" placeholder="Borderlands"></label></div>
+    <div class="row2"><label class="f">Lievelingseten<input id="f-food" value="${esc(d.food)}" placeholder="eieren"></label>
+      <label class="f">Weer<select id="f-weather"><option value="">Maakt niet uit</option><option value="regen"${d.weather==='regen'?' selected':''}>Alleen bij regen</option><option value="zon"${d.weather==='zon'?' selected':''}>Alleen bij zon</option></select></label></div>
+    <datalist id="dl-realm">${realms.map(r=>`<option value="${esc(r)}">`).join('')}</datalist>
+    <datalist id="dl-species">${species.map(r=>`<option value="${esc(r)}">`).join('')}</datalist>
+    <div class="f" style="display:grid;gap:8px"><span class="note"><b>Wanneer spawnt hij?</b> Elke regel is een set dagen met een tijdvak.</span>${rules}
+      <div><button class="btn small" id="r-add">+ Nog een tijdvak</button></div></div>
+    <div class="f" style="display:grid;gap:6px"><span class="note"><b>Wie heeft hem nog nodig?</b></span>
+      <div class="toolbar">${CHARS.map(k=>['need','done','none'].map(st=>`<button class="chip" data-st="${k}:${st}" aria-pressed="${(d.status[k]||'none')===st}">${esc(state.names[k])}: ${st==='need'?'nodig':st==='done'?'binnen':'n.v.t.'}</button>`).join('')).join('</div><div class="toolbar">')}</div></div>
+    <div class="actions">
+      ${d.id?(d.confirmDelete?`<button class="btn danger" id="del-yes">Ja, verwijderen</button>`:`<button class="btn danger" id="del">Verwijderen</button>`):'<span></span>'}
+      <div style="display:flex;gap:8px"><button class="btn" id="cancel">Annuleren</button><button class="btn primary" id="save">Opslaan</button></div></div>
+  </div></div>`;
+}
+function readFields(){['species','variant','realm','spot','food','weather'].forEach(f=>{const el=$('#f-'+f);if(el)draft[f]=el.value.trim()})}
+function closeSheet(){draft=null;$('#sheet-root').innerHTML=''}
+async function saveDraft(){
+  readFields();
+  if(!draft.species&&!draft.variant){toast('Vul minstens de soort of kleur in.');return}
+  if(draft.rules.some(r=>!r.days.length||r.to<=r.from)){toast('Elk tijdvak heeft een dag nodig en een eindtijd na de begintijd.');return}
+  const body={realm:draft.realm,species:draft.species,variant:draft.variant,spot:draft.spot,food:draft.food,weather:draft.weather,rules:draft.rules,status:draft.status,
+    order:draft.order??(Math.max(0,...state.items.map(c=>c.order||0))+1)};
+  if(draft.id){const i=state.items.findIndex(c=>c.id===draft.id);state.items[i]={id:draft.id,...body}}
+  else state.items.push({id:'c'+Date.now().toString(36),...body});
+  closeSheet(); render();
+  if(persist()) toast('Opgeslagen');
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+  const t=e.target.closest('button');
+  if(e.target.id==='sheet-bg'){closeSheet();return}
+  if(!t) return;
+  if(t.dataset.who){state.who=t.dataset.who;store.set('who',state.who);render();return}
+  if(t.dataset.cycle){cycle(t.dataset.id,t.dataset.cycle);return}
+  if(t.dataset.edit){openSheet(t.dataset.edit);return}
+  if(t.dataset.filter){state.filter=t.dataset.filter;store.set('filter',state.filter);render();return}
+  if(t.id==='tab-now'||t.id==='tab-all'||t.id==='tab-set'){state.tab=t.id.slice(4);render();window.scrollTo(0,0);return}
+  if(t.id==='tab-add'){openSheet(null);return}
+  if(t.id==='save-names'){const a=$('#name-a').value.trim()||'Karakter 1',b=$('#name-b').value.trim()||'Karakter 2';state.names={a,b};render();
+    if(persist()) toast('Namen opgeslagen');return}
+  if(t.id==='backup-copy'){const txt=JSON.stringify({names:state.names,items:state.items});const box=$('#backup-text');box.value=txt;
+    navigator.clipboard?.writeText(txt).then(()=>toast('Reservekopie gekopieerd. Plak hem in een notitie of mail.'),()=>{box.select();toast('Selecteer de tekst en kopieer hem zelf.')})??(box.select(),toast('Selecteer de tekst en kopieer hem zelf.'));return}
+  if(t.id==='backup-restore'){try{const d=JSON.parse($('#backup-text').value);if(!Array.isArray(d.items))throw 0;
+    state.items=d.items;state.names=d.names||state.names;persist();render();toast('Reservekopie teruggezet')}catch(e){toast('Dat is geen geldige reservekopie. Plak de hele tekst.')}return}
+  if(!draft) return;
+  readFields();
+  if(t.dataset.rday){const [i,k]=t.dataset.rday.split(':').map(Number);const r=draft.rules[i];r.days=r.days.includes(k)?r.days.filter(x=>x!==k):[...r.days,k];drawSheet();return}
+  if(t.dataset.rall){const r=draft.rules[+t.dataset.rall];r.from=0;r.to=24;drawSheet();return}
+  if(t.dataset.rdel){draft.rules.splice(+t.dataset.rdel,1);drawSheet();return}
+  if(t.id==='r-add'){draft.rules.push({days:[],from:0,to:24});drawSheet();return}
+  if(t.dataset.st){const [k,st]=t.dataset.st.split(':');draft.status[k]=st;drawSheet();return}
+  if(t.id==='cancel'){closeSheet();return}
+  if(t.id==='save'){saveDraft();return}
+  if(t.id==='del'){draft.confirmDelete=true;drawSheet();return}
+  if(t.id==='del-yes'){const id=draft.id;closeSheet();state.items=state.items.filter(c=>c.id!==id);render();
+    if(persist()) toast('Verwijderd');return}
+});
+document.addEventListener('change',e=>{
+  if(!draft) return; const t=e.target;
+  if(t.dataset.rfrom!=null){draft.rules[+t.dataset.rfrom].from=+t.value}
+  if(t.dataset.rto!=null){draft.rules[+t.dataset.rto].to=+t.value}
+});
+document.addEventListener('input',e=>{if(e.target.id==='q'){state.q=e.target.value;render()}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&draft)closeSheet()});
+
+/* ---------- boot ---------- */
+render();
+setInterval(()=>{if(!draft&&state.tab!=='set'&&document.activeElement?.id!=='q')render()},30000);
+(()=>{
+  const ALL=[0,1,2,3,4,5,6], R=(days,from=0,to=24)=>({days,from,to});
+  const FOOD={Monkey:'5-ster dessert (bananasplit)',Capibara:'kool',Cobra:'eieren',Dragon:'pure ice, magma',Pegasus:'bulgur salad, 5-ster groente',
+    Owl:'barley',Goose:'red currant',Skunk:'button mushroom of pincushion peach',Bee:'honey coral'};
+  // who: 'a' = Mip, 'b' = Henkie, 'ab' = allebei
+  const E=(id,order,realm,species,variant,spot,who,rules,weather='')=>({id,order,realm,species,variant,spot,food:FOOD[species]||'',weather,rules,
+    status:{a:who.includes('a')?'need':'none',b:who.includes('b')?'need':'none'}});
+  const SEED=[
+    E('c31',0.5,'Eternity Isle','Monkey','Black & brown','Courtyard','b',[R([2,4,0],12,24),R([3,6])]),
+    E('c01',1,'Eternity Isle','Monkey','Black & grey','Ruins','ab',[R([2])]),
+    E('c02',2,'Eternity Isle','Monkey','Red & beige','Overlook','ab',[R([1,3,5],0,12),R([2,6])]),
+    E('c32',2.5,'Eternity Isle','Monkey','Toon','Docks','b',[R(ALL)]),
+    E('c33',2.6,'Eternity Isle','Capibara','Black & white','Promenade','b',[R([2,4]),R([5,6,0],12,24)]),
+    E('c03',3,'Eternity Isle','Capibara','Blue striped','Grove','ab',[R([1,2,3],0,12),R([4,6])]),
+    E('c04',4,'Eternity Isle','Capibara','Grey spotted','Lagoon','a',[R([1,2,3],12,24),R([5,0])]),
+    E('c05',5,'Eternity Isle','Capibara','Red & white striped','Lagoon','ab',[R([6])]),
+    E('c06',6,'Eternity Isle','Capibara','Toon','Grove','ab',[R(ALL)]),
+    E('c07',7,'Eternity Isle','Cobra','Blue & red striped','Wastes','ab',[R([1,2,6],12,24),R([4,0])]),
+    E('c08',8,'Eternity Isle','Cobra','Green & white striped','Borderlands','ab',[R([4])]),
+    E('c09',9,'Eternity Isle','Cobra','Pink spotted','Oasis','a',[R([1,5]),R([3,4,0],0,12)]),
+    E('c10',10,'Eternity Isle','Cobra','Toon','Wastes','ab',[R(ALL)]),
+    E('c11',11,'Eternity Isle','Cobra','Yellow & purple striped','Borderlands','ab',[R([2,6]),R([3,4,0],12,24)]),
+    E('c12',12,'Storybook Vale','Dragon','Blue baby','Wild Woods','ab',[R([2,3,4,5])]),
+    E('c13',13,'Storybook Vale','Dragon','Green baby','Fallen Fortress','ab',[R([1,2,3,4,0],10,18)]),
+    E('c14',14,'Storybook Vale','Dragon','Purple baby','Beanstalk','ab',[R(ALL,0,12)]),
+    E('c15',15,'Storybook Vale','Dragon','Red baby','Teapot','a',[R([1,6,0])]),
+    E('c34',15.5,'Storybook Vale','Pegasus','Black','Elysian','b',[R([3,4,5,6,0])]),
+    E('c16',16,'Storybook Vale','Pegasus','Blue','Fiery','ab',[R([1,2,3])]),
+    E('c35',16.5,'Storybook Vale','Pegasus','Peach','Olympus','b',[R(ALL,6,14)]),
+    E('c17',17,'Storybook Vale','Pegasus','Yellow','Statue','ab',[R([2,3,4,5,6],18,24)]),
+    E('c18',18,'Storybook Vale','Owl','Purple','Bind','ab',[R(ALL,0,9)]),
+    E('c19',19,'Storybook Vale','Owl','White','Bind','a',[R(ALL,15,20)]),
+    E('c36',19.5,'Wishblossom','Goose','Blue','Wishing','b',[R([0,1],18,20)]),
+    E('c20',20,'Wishblossom','Goose','Golden','Delverdale','ab',[R(ALL,7,8),R(ALL,19,20)]),
+    E('c37',20.5,'Wishblossom','Goose','True North','Ranch Highlands','b',[R([2,4,6])]),
+    E('c21',21,'Wishblossom','Skunk','Brown','Paisley Park','ab',[R([1,3,5,0],12,24)]),
+    E('c22',22,'Wishblossom','Skunk','Patterned','Haute Plateau','ab',[R(ALL)],'regen'),
+    E('c23',23,'Wishblossom','Skunk','Skunk','Runway','ab',[R(ALL,0,12)]),
+    E('c24',24,'Wishblossom','Skunk','White','Modish','ab',[R([2,4,6,0],12,24)]),
+    E('c25',25,'Wishblossom','Bee','Blue sweet','Hunny Falls','a',[R(ALL)],'zon'),
+    E('c26',26,'Wishblossom','Bee','Pink sweet','Pixie','ab',[R(ALL)]),
+    E('c27',27,'Wishblossom','Bee','Sweet bee','Sundae','ab',[R(ALL,7,20)]),
+    E('c28',28,'Wishblossom','Bee','White sweet','Hundred','ab',[R(ALL,20,24)]),
+    E('c29',29,'Honeyglow Woods','Hedgehog','Green','Gloommeadow','a',[R(ALL,0,12)]),
+    E('c30',30,'Honeyglow Woods','Hedgehog','Orange','Nectar','a',[R([3,6,0],12,24)]),
+  ];
+  let saved=null; try{saved=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){}
+  if(saved&&Array.isArray(saved.items)){
+    state.items=saved.items; state.names=saved.names||{a:'Mip',b:'Henkie'};
+    if((saved.seed||1)<SEED_V){ // first version had only Mip's list: add Henkie's without touching ticks already made
+      SEED.forEach(s=>{const c=state.items.find(x=>x.id===s.id);
+        if(!c){state.items.push(s);return}
+        c.status=c.status||{}; if((c.status.b||'none')==='none') c.status.b=s.status.b;
+        c.spot=s.spot; c.food=s.food; c.variant=s.variant; if(s.id==='c13') c.rules=s.rules});
+      if(state.names.b==='Karakter 2') state.names.b='Henkie';
+      persist();
+    }
+  }
+  else{state.items=SEED;state.names={a:'Mip',b:'Henkie'};persist()}
+  try{navigator.storage?.persist?.()}catch(e){}
+  state.loaded=true; render();
+})();
+</script>
+<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script></body>
+</html>
