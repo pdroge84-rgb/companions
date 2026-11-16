@@ -53,7 +53,17 @@ h3.realm{font:700 .72rem var(--f-body);text-transform:uppercase;letter-spacing:.
 .species{font-family:var(--f-display);font-size:.95rem;color:var(--pen);margin:4px 0 -2px}
 .species small{font-family:var(--f-body);color:var(--muted);font-size:.78rem}
 .list{display:grid;gap:8px}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 12px 12px 14px;display:flex;gap:10px;align-items:flex-start}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 12px 12px 14px;display:grid;gap:10px}
+.card-top{display:flex;gap:10px;align-items:flex-start}
+.feeds{display:grid;gap:6px;border-top:1px dashed var(--line);padding-top:10px}
+.feed-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.feed-btn{border:1px solid var(--gold);background:var(--surface);color:var(--gold);font:700 .82rem var(--f-body);border-radius:10px;padding:7px 12px;cursor:pointer}
+.feed-btn.fed{background:var(--gold-soft);border-color:var(--gold-soft)}
+.feed-sum{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;background:var(--gold-soft);color:var(--gold);border-radius:12px;padding:10px 14px;margin-top:-12px}
+.feed-sum strong{font-family:var(--f-display);font-size:1rem}
+.feed-sum span{font-size:.82rem;font-variant-numeric:tabular-nums}
+.feed-sum.all{background:var(--done-soft);color:var(--done)}
+.feed-count{font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
 .card.live{border-color:var(--gold);box-shadow:inset 3px 0 0 var(--gold)}
 .card.all-done{opacity:.6}
 .card-main{flex:1;min-width:0;background:none;border:0;padding:0;text-align:left;color:inherit;font:inherit;cursor:pointer}
@@ -162,13 +172,20 @@ function card(c,extra){
   const pills=CHARS.map(k=>{const st=s[k]||'none';const lab=st==='need'?'nodig':st==='done'?'✓ binnen':'n.v.t.';
     return `<button class="pill ${st}" data-cycle="${k}" data-id="${c.id}" aria-label="${esc(state.names[k])}: ${lab}">${esc(state.names[k])} · ${lab}</button>`}).join('');
   const allDone=CHARS.every(k=>s[k]!=='need');
+  const feedFor=CHARS.filter(k=>s[k]==='need'&&(state.who==='both'||state.who===k));
+  const feeds=feedFor.map(k=>{const done=fedToday(c,k), cnt=((c.fed||{})[k]||{}).count||0;
+    const who=state.who==='both'?esc(state.names[k])+': ':'';
+    return `<div class="feed-row"><button class="feed-btn${done?' fed':''}" data-feed="${k}" data-id="${c.id}" aria-pressed="${done}">${who}${done?'✓ vandaag gevoerd':'vandaag voeren'}</button>
+      <span class="feed-count">${cnt}× gevoerd in totaal</span></div>`}).join('');
   return `<article class="card${live&&extra!=='plain'?' live':''}${allDone?' all-done':''}">
+    <div class="card-top">
     <button class="card-main" data-edit="${c.id}">
       <strong>${esc(c.variant||c.species)}</strong>
       <div class="meta">${esc(c.species)}${c.spot?' · '+esc(c.spot):''}${c.food?' · eet '+esc(c.food):''}</div>
       <div class="when">${extra&&extra!=='plain'?extra:''}${weatherTag(c)}${esc(fmtRules(c))}</div>
     </button>
-    <div class="pills">${pills}</div></article>`;
+    <div class="pills">${pills}</div></div>
+    ${feeds?`<div class="feeds">${feeds}</div>`:''}</article>`;
 }
 
 function grouped(items,extraFn){
@@ -187,7 +204,13 @@ function renderNow(){
   const live=need.filter(c=>!c.weather&&liveRule(c,n));
   const weather=need.filter(c=>c.weather&&liveRule(c,n));
   const later=need.filter(c=>!c.weather&&!liveRule(c,n)&&laterRule(c,n)).sort((a,b)=>laterRule(a,n).from-laterRule(b,n).from);
+  // feeding to do today: every (companion, character) that still needs it and can spawn today
+  const ks=state.who==='both'?CHARS:[state.who];
+  let toFeed=0, fedN=0;
+  need.forEach(c=>{if(!(c.rules||[]).some(r=>r.days.includes(n.day)))return;
+    ks.forEach(k=>{if((c.status||{})[k]!=='need')return; if(fedToday(c,k))fedN++; else toFeed++})});
   let h=`<p class="summary">${esc(who)} ${state.who==='both'?'missen':'mist'} nog <span>${need.length}</span> companion${need.length===1?'':'s'}.</p>`;
+  h+=`<div class="feed-sum${toFeed?'':' all'}"><strong>${toFeed?`Nog ${toFeed} te voeren vandaag`:'Iedereen is vandaag gevoerd'}</strong><span>${fedN} al gevoerd</span></div>`;
   h+=`<section><h2 class="now">Nu te vinden <span class="count">${live.length}</span></h2>`;
   h+=live.length?grouped(live,c=>{const r=liveRule(c,n);return r.to===24&&r.from===0?'<span class="tag gold">nu</span>':`<span class="tag gold">nog tot ${hh(r.to)}</span>`})
     :`<div class="empty">Op dit moment spawnt er niets dat ${state.who==='both'?'jullie':'je'} nog nodig ${state.who==='both'?'hebben':'hebt'}. Kijk bij "Later vandaag".</div>`;
@@ -243,6 +266,17 @@ function persist(){
 }
 function toast(t){const el=$('#toast');el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,2600)}
 
+function todayKey(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function fedToday(c,k){return ((c.fed||{})[k]||{}).last===todayKey()}
+function feed(id,k){
+  const c=state.items.find(x=>x.id===id); if(!c) return;
+  const f={count:0,last:null,prev:null,...((c.fed||{})[k]||{})};
+  if(f.last===todayKey()){f.count=Math.max(0,f.count-1);f.last=f.prev;f.prev=null}   // tapped by mistake: undo today's feeding
+  else{f.prev=f.last;f.last=todayKey();f.count+=1}
+  c.fed={...(c.fed||{}),[k]:f}; render(); persist();
+  if(f.last===todayKey()) toast(`${c.variant||c.species} gevoerd (${f.count}× in totaal)`);
+}
+
 function cycle(id,k){
   const c=state.items.find(x=>x.id===id); if(!c) return;
   const cur=(c.status||{})[k]||'none', next=cur==='need'?'done':cur==='done'?'none':'need';
@@ -289,7 +323,7 @@ async function saveDraft(){
   readFields();
   if(!draft.species&&!draft.variant){toast('Vul minstens de soort of kleur in.');return}
   if(draft.rules.some(r=>!r.days.length||r.to<=r.from)){toast('Elk tijdvak heeft een dag nodig en een eindtijd na de begintijd.');return}
-  const body={realm:draft.realm,species:draft.species,variant:draft.variant,spot:draft.spot,food:draft.food,weather:draft.weather,rules:draft.rules,status:draft.status,
+  const body={realm:draft.realm,species:draft.species,variant:draft.variant,spot:draft.spot,food:draft.food,weather:draft.weather,rules:draft.rules,status:draft.status,fed:draft.fed||{},
     order:draft.order??(Math.max(0,...state.items.map(c=>c.order||0))+1)};
   if(draft.id){const i=state.items.findIndex(c=>c.id===draft.id);state.items[i]={id:draft.id,...body}}
   else state.items.push({id:'c'+Date.now().toString(36),...body});
@@ -304,6 +338,7 @@ document.addEventListener('click',e=>{
   if(!t) return;
   if(t.dataset.who){state.who=t.dataset.who;store.set('who',state.who);render();return}
   if(t.dataset.cycle){cycle(t.dataset.id,t.dataset.cycle);return}
+  if(t.dataset.feed){feed(t.dataset.id,t.dataset.feed);return}
   if(t.dataset.edit){openSheet(t.dataset.edit);return}
   if(t.dataset.filter){state.filter=t.dataset.filter;store.set('filter',state.filter);render();return}
   if(t.id==='tab-now'||t.id==='tab-all'||t.id==='tab-set'){state.tab=t.id.slice(4);render();window.scrollTo(0,0);return}
